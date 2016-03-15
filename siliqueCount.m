@@ -3,7 +3,7 @@
 
 %Main function call the rest
 function main()
-    SegmentSilique('hola');
+    SegmentSilique();
  
  %Functio search for files
  function rd = GetFiles(rootname, dates, datee)
@@ -17,8 +17,8 @@ function main()
     rd = rd(p);
     
  %Segment image  
- function SegmentSilique(b)
-     pc1 = dir(strcat('*.tiff'));
+ function SegmentSilique()
+     pc1 = dir(strcat('*.tiff')); % Look for files with a .tif extension and on the current folder
      if(length(pc1) >= 1)
         for k=1:length(pc1)
            fname = pc1(k).name;
@@ -29,7 +29,7 @@ function main()
                 getNumber(BWI2);
    
            catch
-               warning('Problem using function.  Assigning a value of 0.');
+               warning('Problem using function. Assigning a value of 0.');
            end
         end
      end
@@ -47,18 +47,16 @@ function[BW] = imagePostPro(IM)
 
 %get Silique number
 function getNumber(IM)
-    cc = regionprops(IM, 'Area', 'Perimeter');
-    [a,v] = sort([cc.Perimeter]);
+    cc = regionprops(IM, 'Area', 'Perimeter'); %Get properties per segmented regions
+    [a,v] = sort([cc.Perimeter]); %Sort perimeter by size
     CC = bwconncomp(IM);
-    L = labelmatrix(CC);
-    o = find(a > 300);
+    L = labelmatrix(CC); %Label segmented regions
+    o = find(a > 300); %Search regions whose perimeter is large
     for i=1:length(o)
-        i
-        k = find(L==v(o(i)));
-        k
+        k = find(L==v(o(i))); 
         L(k) = 0;
     end
-    n = length(cc);
+    n = length(cc); %Delete large areas
     n = n - length(o);
     figure
     imagesc(L);
