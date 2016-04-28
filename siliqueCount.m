@@ -3,7 +3,8 @@
 
 %Main function call the rest
 function main()
-    SegmentSilique();
+    outputfile = 'silique_output.csv';
+    SegmentSilique(outputfile);
  
  %Functio search for files
  function rd = GetFiles(rootname, dates, datee)
@@ -17,7 +18,9 @@ function main()
     rd = rd(p);
     
  %Segment image  
- function SegmentSilique()
+ function SegmentSilique(outputfile)
+     fileID = fopen(outputfile,'w');
+     fprintf(fileID,'%s, %s, %s, %s, %s, %s\n', 'Filename', 'idtag', 'timestamp', 'area0', 'area90');
      pc1 = dir(strcat('*.tiff')); % Look for files with a .tif extension and on the current folder
      if(length(pc1) >= 1)
         for k=1:length(pc1)
@@ -31,6 +34,7 @@ function main()
            catch
                warning('Problem using function. Assigning a value of 0.');
            end
+        savedata(fileID, fname);
         end
      end
      
@@ -46,7 +50,7 @@ function[BW] = imagePostPro(IM)
     BW = bwareaopen(IM, 100);
 
 %get Silique number
-function getNumber(IM)
+    function[] = getNumber(IM)
     cc = regionprops(IM, 'Area', 'Perimeter'); %Get properties per segmented regions
     [a,v] = sort([cc.Perimeter]); %Sort perimeter by size
     CC = bwconncomp(IM);
@@ -63,4 +67,5 @@ function getNumber(IM)
     title(['Number of siliques ',num2str(n)])
            
            
-           
+function savedata(outputfile, fname, totals)
+  fprintf(outputfile,'%s, %12.0f\n', fname, totals);       
