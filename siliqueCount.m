@@ -3,12 +3,13 @@
 
 %Main function call the rest
 function main()
-    imagesTrainingfolder = 'C:\Anyela\students\gina\Siliques\';
-    imagesTestingfolder = 'C:\Anyela\students\gina\Siliques\';
+    imagesTrainingfolder = 'C:\Anyela\students\gina\Siliques\images\';
+    imagesTestingfolder = 'C:\Anyela\students\gina\Siliques\images\test\';
     outputfile = 'silique_output.csv';
-    rd = GetFiles(imagesfolder);
+    rd = GetFiles(imagesTrainingfolder);
     getTrainingData(rd, imagesTrainingfolder, outputfile);
     rd = GetFiles(imagesfolder);
+   
     classifyImage(rd, imagesTestingfolder, outputfile);
  
  %List files from folder
@@ -21,39 +22,76 @@ function main()
         end
     end
     rd = rd(p);
-  
-    
- function getTrainingData(filelist, rootname, outputfile)
-     fileID = fopen(outputfile,'w');
-     fprintf(fileID,'%s, %s, %s\n', 'Filename', 'idtag', 'area0');
-     for k=1:length(filelist)
-        fname = strcat(rootname, filelist(k).name);
-        try   
-        I= imread(fname);
-        [data, group] = load_data(I);
-        [svn_model] = train_classifier(data, group);
-        catch
-            warning('Problem using function. Assigning a value of 0.');
-        end
-        savedata(fileID, fname);
-     end
+ 
+   
      
  % Get training data
  function getTrainingData(filelist, rootname, outputfile)
      fileID = fopen(outputfile,'w');
      fprintf(fileID,'%s, %s, %s\n', 'Filename', 'idtag', 'area0');
-     for k=1:length(filelist)
+     inx = getIndex(filelist, 'modified');
+     xgroup = cell(1,1);
+     xdata = zeros(1,3);
+     for k = inx
         fname = strcat(rootname, filelist(k).name);
+        fnameOrig = strcat(rootname, splitname(filelist(k).name),'.png');
+        
         try   
-        I= imread(fname);
-        [data, group] = load_data(I);
-        [svn_model] = train_classifier(data, group);
+        I = imread(fname);
+        IOrig = imread(fnameOrig);
+        o = size(I);
+        o = 1:o(1)*o(2);
+        i = searchPixelInx(I, 255,0,0);
+        C = setdiff(o,i);
+        [data, group] = getColors(IOrig, i', C);
+        xdata = cat(1, xdata, data);
+        xgroup = cat(1, xgroup, group);
         catch
             warning('Problem using function. Assigning a value of 0.');
         end
-        savedata(fileID, fname);
+        save('test.mat','group', 'xdata')
+        [svn_model] = train_classifier(xdata, xgroup);
      end
+ 
+     
+function[str] = splitname(n)
+    s = strsplit(n,'_');
+    k = {s{1}, s{2}};
+    str = strjoin(k,'_');
+         
+% Get pixel colours according to index
+function [m, group] = getColors(I, inxc1, inxc2)
+    R = I(:,:,1);
+    G = I(:,:,2);
+    B = I(:,:,3);
+    m = zeros((length(inxc1)+length(inxc2)), 3);
+    xinx = [inxc1, inxc2];
+    group = cell((length(inxc1)+ length(inxc2)),1);
+    group(1:length(inxc1)) = {1};
+    group((length(inxc1)+1):length(group)) = {0};
+    
+    for ii=1:numel(xinx)
+        i = xinx(ii);
+        m(ii,1:3) = [R(i), G(i),B(i)];
+    end
+         
+% Look for training images
+function ix = getIndex(filelistname, kw)
+    k = strfind({filelistname.name}, kw);
+    p = 18;
+    ix = [];
+    j = 1;
+    for ii = 1:numel(k)
+      if(k{ii} >= p)
+         ix(j) = ii;
+         j = j+1;
+      end
+    end     
 
+function ix = searchPixelInx(I, r,g,b)
+   ix = find(I(:,:,1) == r & I(:,:,2) == g & I(:,:,3) == b);
+    
+    
 % Classify images 
 function classifyImage(filelist, rootname, outputfile)
      fileID = fopen(outputfile,'w');
@@ -147,7 +185,7 @@ function[xdata, group] = get_data(I)
   
     imshow(I);
     pause(10);
-    disp('Make image bigger and select silique only')
+    %disp('Make image bigger and select silique only')
     i = impixel
     
     imshow(I);
@@ -172,4 +210,19 @@ function[svmStruct] = train_classifier(xdata, group)
 function[resultclass] = test_classifier(svmStruct, testdata)
     resultclass = svmclassify(svmStruct, testdata)
     
- 
+function[imGW] = illuminant_correction(im)
+    % im -  the RGB image 
+    % imshow(im)
+    % [min(im(:)) max(im(:))]
+    [row,col] = size(im(:,:,1));
+    im2d = reshape(im, [row*col 3]);
+    im2d = im2double(im2d);
+
+    %Grey World
+    LGW = mean(im2d);
+    % illuminant corrected image
+    imGW = im2double(im);
+    c=1; imGW(:,:,c) = imGW(:,:,c) ./ LGW(c);
+    c=2; imGW(:,:,c) = imGW(:,:,c) ./ LGW(c);
+    c=3; imGW(:,:,c) = imGW(:,:,c) ./ LGW(c);
+    imshow(uint8(imGW.*255))
