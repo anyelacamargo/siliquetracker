@@ -49,11 +49,30 @@ function main()
         catch
             warning('Problem using function. Assigning a value of 0.');
         end
-        save('test.mat','group', 'xdata')
+        save('train.mat','group', 'xdata')
         [svn_model] = train_classifier(xdata, xgroup);
      end
  
+ % Get test data
+ function getTestData(filelist, rootname, outputfile)
+     fileID = fopen(outputfile,'w');
+     fprintf(fileID,'%s, %s, %s\n', 'Filename', 'idtag', 'area0');
      
+     for k = 1:numel(filelist)
+        fname = strcat(rootname, filelist(k).name);
+        
+        try   
+        I = imread(fname);
+        o = size(I);
+        o = 1:o(1)*o(2);
+        [data, group] = getColors(I, [], o);
+        catch
+            warning('Problem using function. Assigning a value of 0.');
+        end
+        save('test.mat','group', 'xdata')
+       
+     end
+      
 function[str] = splitname(n)
     s = strsplit(n,'_');
     k = {s{1}, s{2}};
