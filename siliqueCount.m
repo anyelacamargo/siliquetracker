@@ -11,7 +11,7 @@ function main()
     getTrainingData(rd, imagesTrainingfolder, outputfile);
     %Test images
     %rd = GetFiles(imagesTestingfolder);
-    %getTestData(rd, imagesTestingfolder, outputfile);
+    getTestData(rd, imagesTestingfolder, outputfile);
 
    
     %classifyImage(rd, imagesTestingfolder, outputfile);
@@ -43,13 +43,7 @@ function main()
         try   
         I = imread(fname);
         IOrig = imread(fnameOrig);
-%         o = size(I);
-%         o = 1:o(1)*o(2);
-%         i = searchPixelInx(I, 255,0,0);
-%         C = setdiff(o,i);
-%         [data, group] = getColors(IOrig, i', C);
-        BW = cropImage(I);
-        LabelCrop(BW);
+        BW = cropImage(I, 0, 0, 3);
         s = getProps(BW, IOrig);
         
         xdata = cat(1, xdata, data);
@@ -62,12 +56,31 @@ function main()
      save('train.mat','group', 'xdata', 'svn_model');
  
      
- %Crop image
+
+ % Get test data
+ function getTestData(filelist, rootname, outputfile)
+     fileID = fopen(outputfile,'w');
+     fprintf(fileID,'%s, %s, %s\n', 'Filename', 'idtag', 'area0');
+     load train.mat
+     for k = 1:numel(filelist)
+        fname = strcat(rootname, filelist(k).name);
+        try
+        I = imread(fname);
+        BW = cropImage(I);
+        %[data, group] = getColors(I, [], o);
+        catch
+            warning('Problem using function. Assigning a value of 0.');
+        end
+        resultclass = test_classifier(svn_model, data)
+
+     end
  
-function[BW] = cropImage(I)
+     %Select region of interest and apply dilation
+% I = Image (RGB)
+function[BW] = cropImage(I, mn, mx, sl)
     G = I(:,:,2);
-    BW = roicolor(G, 0, 0);
-    SE = strel('line',3,90);
+    BW = roicolor(G, mn, mx);
+    SE = strel('line',sl,90);
     BW2 = imdilate(BW,SE);
    
     
@@ -86,27 +99,7 @@ function[LI] = LabelCrop(BW)
     rgb_labeled=label2rgb(Label2);
     imshow(rgb_labeled);
         
- % Get test data
- function getTestData(filelist, rootname, outputfile)
-     fileID = fopen(outputfile,'w');
-     fprintf(fileID,'%s, %s, %s\n', 'Filename', 'idtag', 'area0');
-     load train.mat
-     for k = 1:numel(filelist)
-        fname = strcat(rootname, filelist(k).name);
-        
-        try   
-        I = imread(fname);
-        o = size(I);
-        o = 1:o(1)*o(2);
-        [data, group] = getColors(I, [], o);
-        catch
-            warning('Problem using function. Assigning a value of 0.');
-        end
-        resultclass = test_classifier(svn_model, data)
-        
-       
-     end
-      
+     
 function[str] = splitname(n)
     s = strsplit(n,'_');
     k = {s{1}, s{2}};
@@ -129,7 +122,12 @@ function [m, group] = getColors(I, inxc1, inxc2)
     end
 
 function[] = getDatafStruct(s)
-        
+    ss = s;
+    ss = rmfield(ss,'PixelIdxList');
+    m = zeros(length(ss), length(fieldnames(ss)));
+    group = cell(length(ss),1);
+
+    
 
 function [m] = getAverageColors(I, inxc)
     R = I(:,:,1);
