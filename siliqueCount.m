@@ -69,23 +69,38 @@ function main()
         mn = 51;  mx = 170;
         ICrop = cropImage(I, mn, mx, 3);
         createBoundary(ICrop, I);
-        ICropCorn = findCorners(ICrop);
+        vcorner = findCorners(ICrop);
         %[data, group] = getColors(I, [], o);
         catch
             warning('Problem using function. Assigning a value of 0.');
         end
 %         resultclass = test_classifier(svn_model, data)
-
      end
  
      %Select region of interest and apply dilation
 % I = Image (RGB)
+
+function[] = ExtendCorner()
+         
+         
+
 function[BWD] = cropImage(I, mn, mx, sl)
     G = I(:,:,2);
     BW = roicolor(G, mn, mx);
+    BWD = deleteCorners(BW);
+    BW2 = bwareaopen(BWD, 30);
     SE = strel('line',sl,90);
-    BWD = imdilate(BW,SE);
+    BWD = imdilate(BW2,SE);
 
+%Clean edges
+function[BW] = deleteCorners(BW)
+    h = size(BW,1);
+    w = size(BW,2);
+    BW(:,1:10) = 0;
+    BW(:,(w-10):w) = 0;
+    BW(1:10,:) = 0;
+    BW((h-10):h,:) = 0;
+    
 % Create boundary of segmented vs original image
 function[B] = createBoundary(BW, I)
     B = bwboundaries(BW);
@@ -95,9 +110,9 @@ function[B] = createBoundary(BW, I)
 
 %Find corners    
 function[C] = findCorners(BW)
-    BW2 = bwareaopen(BW, 30);
-    C = corner(BW2, 'MinimumEigenvalue');
-    imshow(BW2);
+    
+    C = corner(BW, 'MinimumEigenvalue');
+    imshow(BW);
     hold on
     plot(C(:,1), C(:,2), 'r*');
     
