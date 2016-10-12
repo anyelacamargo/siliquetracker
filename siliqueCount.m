@@ -10,7 +10,7 @@ function main()
     rd = GetFiles(imagesTrainingfolder);
     getTrainingData(rd, imagesTrainingfolder, outputfile);
     %Test images
-    %rd = GetFiles(imagesTestingfolder);
+    rd = GetFiles(imagesTestingfolder);
     getTestData(rd, imagesTestingfolder, outputfile);
 
    
@@ -46,14 +46,14 @@ function main()
         BW = cropImage(I, 0, 0, 3);
         s = getProps(BW, IOrig);
         
-        xdata = cat(1, xdata, data);
-        xgroup = cat(1, xgroup, group);
+%         xdata = cat(1, xdata, data);
+%         xgroup = cat(1, xgroup, group);
         catch
             warning('Problem using function. Assigning a value of 0.');
         end   
      end
-     [svn_model] = train_classifier(xdata, xgroup);
-     save('train.mat','group', 'xdata', 'svn_model');
+%      [svn_model] = train_classifier(xdata, xgroup);
+%      save('train.mat','group', 'xdata', 'svn_model');
  
      
 
@@ -66,23 +66,40 @@ function main()
         fname = strcat(rootname, filelist(k).name);
         try
         I = imread(fname);
-        BW = cropImage(I);
+        mn = 51;  mx = 170;
+        ICrop = cropImage(I, mn, mx, 3);
+        createBoundary(ICrop, I);
+        ICropCorn = findCorners(ICrop);
         %[data, group] = getColors(I, [], o);
         catch
             warning('Problem using function. Assigning a value of 0.');
         end
-        resultclass = test_classifier(svn_model, data)
+%         resultclass = test_classifier(svn_model, data)
 
      end
  
      %Select region of interest and apply dilation
 % I = Image (RGB)
-function[BW] = cropImage(I, mn, mx, sl)
+function[BWD] = cropImage(I, mn, mx, sl)
     G = I(:,:,2);
     BW = roicolor(G, mn, mx);
     SE = strel('line',sl,90);
-    BW2 = imdilate(BW,SE);
-   
+    BWD = imdilate(BW,SE);
+
+% Create boundary of segmented vs original image
+function[B] = createBoundary(BW, I)
+    B = bwboundaries(BW);
+    imshow(BW)
+    hold on
+    visboundaries(B)
+
+%Find corners    
+function[C] = findCorners(BW)
+    BW2 = bwareaopen(BW, 30);
+    C = corner(BW2, 'MinimumEigenvalue');
+    imshow(BW2);
+    hold on
+    plot(C(:,1), C(:,2), 'r*');
     
 function[stats] = getProps(BW, IOrig)
     CC = bwconncomp(BW);
