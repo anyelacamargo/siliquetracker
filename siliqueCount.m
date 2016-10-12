@@ -69,7 +69,7 @@ function main()
         mn = 51;  mx = 170;
         ICrop = cropImage(I, mn, mx, 3);
         createBoundary(ICrop, I);
-        vcorner = findCorners(ICrop);
+        vextr = findCorners(ICrop);
         %[data, group] = getColors(I, [], o);
         catch
             warning('Problem using function. Assigning a value of 0.');
@@ -77,20 +77,22 @@ function main()
 %         resultclass = test_classifier(svn_model, data)
      end
  
-     %Select region of interest and apply dilation
+    
+
+function[] = ExtendCorner(vextr, BW)
+    
+    
+         
+         
+%Select region of interest and apply dilation
 % I = Image (RGB)
-
-function[] = ExtendCorner()
-         
-         
-
-function[BWD] = cropImage(I, mn, mx, sl)
+function[BW] = cropImage(I, mn, mx, sl)
     G = I(:,:,2);
     BW = roicolor(G, mn, mx);
-    BWD = deleteCorners(BW);
-    BW2 = bwareaopen(BWD, 30);
+    BW = deleteCorners(BW);
+    BW = bwareaopen(BW, 30);
     SE = strel('line',sl,90);
-    BWD = imdilate(BW2,SE);
+    BW = imdilate(BW,SE);
 
 %Clean edges
 function[BW] = deleteCorners(BW)
