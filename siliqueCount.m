@@ -69,7 +69,8 @@ function main()
         mn = 51;  mx = 170;
         ICrop = cropImage(I, mn, mx, 3);
         createBoundary(ICrop, I);
-        vextr = findCorners(ICrop);
+        vextr = findCorners(ICrop); 
+        ExtendVertix(vextr, ICrop);
         %[data, group] = getColors(I, [], o);
         catch
             warning('Problem using function. Assigning a value of 0.');
@@ -78,9 +79,18 @@ function main()
      end
  
     
-
-function[] = ExtendCorner(vextr, BW)
-    
+%Extend vertix
+function[] = ExtendVertix(vextr, BW)
+    for i=1:size(vextr,1)
+        r = vextr(i,2);
+        c = vextr(i,1);
+        %impixelinfo()
+        BW(r,c) %row col
+        n = BW(r-2, c)
+        s = BW(r+2, c)
+        e = BW(r, c-2)
+        w = BW(r, c+2)
+    end
     
          
          
@@ -90,7 +100,7 @@ function[BW] = cropImage(I, mn, mx, sl)
     G = I(:,:,2);
     BW = roicolor(G, mn, mx);
     BW = deleteCorners(BW);
-    BW = bwareaopen(BW, 30);
+    BW = bwareaopen(BW, 100);
     SE = strel('line',sl,90);
     BW = imdilate(BW,SE);
 
@@ -110,13 +120,20 @@ function[B] = createBoundary(BW, I)
     hold on
     visboundaries(B)
 
-%Find corners    
+%Find corners 
+% Returns table (c,r)
 function[C] = findCorners(BW)
-    
     C = corner(BW, 'MinimumEigenvalue');
     imshow(BW);
     hold on
     plot(C(:,1), C(:,2), 'r*');
+    z = [];
+    for i=1:size(C,1)
+        if(BW(C(i,2), C(i,1)) == 0) %row col
+            z = [z, i];
+        end
+    end
+    C(z,:) = [];
     
 function[stats] = getProps(BW, IOrig)
     CC = bwconncomp(BW);
